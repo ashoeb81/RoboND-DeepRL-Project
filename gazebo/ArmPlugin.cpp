@@ -49,8 +49,8 @@
 /
 */
 
-#define REWARD_WIN  0.0f
-#define REWARD_LOSS -0.0f
+#define REWARD_WIN  1.0f
+#define REWARD_LOSS -1000.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -584,11 +584,12 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
-		if(gripBBox.min.z <= groundContact)
+        bool checkGroundContact = gripBBox.min.z <= groundContact;
+		if(checkGroundContact)
 		{
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
-			rewardHistory = REWARD_WIN;
-			newReward     = false;
+			rewardHistory = REWARD_LOSS;
+			newReward     = true;
 			endEpisode    = true;
 		}
 		
@@ -597,23 +598,21 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - Issue an interim reward based on the distance to the object
 		/
 		*/ 
-		
-		/*
 		if(!checkGroundContact)
 		{
-			const float distGoal = 0; // compute the reward from distance to the goal
+			const float distGoal = BoxDistance(gripBBox, propBBox); // compute the reward from distance to the goal
 			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 			
 			if( episodeFrames > 1 )
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
 				// compute the smoothed moving average of the delta of the distance to the goal
-				avgGoalDelta  = 0.0;
-				rewardHistory = None;
-				newReward     = None;	
+				avgGoalDelta  = (avgGoalDelta * 0.9) + (distDelta * (1 - 0.9));
+				rewardHistory = 1./avgGoalDelta;
+				newReward     = true;	
 			}
 			lastGoalDistance = distGoal;
-		} */
+		}
 	}
 
 	// issue rewards and train DQN
@@ -635,7 +634,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			lastGoalDistance = 0.0f;
 			avgGoalDelta     = 0.0f;
 
-			// track the number of wins and agent accuracy
+			//      number of wins and agent accuracy
 			if( rewardHistory >= REWARD_WIN )
 				successfulGrabs++;
 
