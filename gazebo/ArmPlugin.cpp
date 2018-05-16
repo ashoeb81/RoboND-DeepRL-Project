@@ -138,7 +138,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	/
 	*/
 	
-	//cameraSub = None;
+	cameraSub = cameraNode->Subscribe("/gazebo/arm_world/camera/link/camera/image",  ArmPlugin::onCameraMsg, this);
 
 	// Create our node for collision detection
 	collisionNode->Init();
@@ -148,7 +148,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	/
 	*/
 	
-	//collisionSub = None;
+	collisionSub = collisionNode->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", ArmPlugin::onCollisionMsg, this);
 
 	// Listen to the update event. This event is broadcast every simulation iteration.
 	this->updateConnection = event::Events::ConnectWorldUpdateBegin(boost::bind(&ArmPlugin::OnUpdate, this, _1));
@@ -167,7 +167,10 @@ bool ArmPlugin::createAgent()
 	/
 	*/
 	
-	agent = NULL;
+	agent = = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, 2 * DOF, 
+                               OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE,
+                               GAMMA, EPS_START, EPS_END, EPS_DECAY,
+                               USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);;
 
 	if( !agent )
 	{
