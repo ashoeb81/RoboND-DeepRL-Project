@@ -16,7 +16,7 @@
 #define JOINT_MAX	 2.0f
 
 // Turn on velocity based control
-#define VELOCITY_CONTROL false
+#define VELOCITY_CONTROL true
 #define VELOCITY_MIN -0.2f
 #define VELOCITY_MAX  0.2f
 
@@ -326,14 +326,20 @@ bool ArmPlugin::updateAgent()
 	/
 	*/
 	
-	float velocity = 0.0; // TODO - Set joint velocity based on whether action is even or odd.
-
+	float velocity = vel[action/2]; // TODO - Set joint velocity based on whether action is even or odd.
+	
+  if (action % 2 ==0) {
+      velocity += actionVelDelta;
+    } else {
+      velocity -= actionVelDelta; 
+    }
+      
 	if( velocity < VELOCITY_MIN )
 		velocity = VELOCITY_MIN;
 
 	if( velocity > VELOCITY_MAX )
 		velocity = VELOCITY_MAX;
-
+  
 	vel[action/2] = velocity;
 	
 	for( uint32_t n=0; n < DOF; n++ )
