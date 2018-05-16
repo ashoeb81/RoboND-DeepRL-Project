@@ -66,7 +66,7 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG false
+#define DEBUG true
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -168,9 +168,9 @@ bool ArmPlugin::createAgent()
 	*/
 	
 	agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, 2 * DOF, 
-                                 OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE,
-                                 GAMMA, EPS_START, EPS_END, EPS_DECAY,
-                                 USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);;
+                             OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE,
+                             GAMMA, EPS_START, EPS_END, EPS_DECAY,
+                               USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);;
 
 	if( !agent )
 	{
@@ -271,10 +271,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		if (collisionCheck)
 		{
 			rewardHistory = None;
-
 			newReward  = None;
 			endEpisode = None;
-
 			return;
 		}
 		*/
@@ -586,18 +584,14 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
-		
-		
-		/*if(checkGroundContact)
+		if(gripBBox.min.z <= groundContact)
 		{
-						
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
-
-			rewardHistory = None;
-			newReward     = None;
-			endEpisode    = None;
+			rewardHistory = REWARD_WIN;
+			newReward     = false;
+			endEpisode    = true;
 		}
-		*/
+		
 		
 		/*
 		/ TODO - Issue an interim reward based on the distance to the object
@@ -608,20 +602,16 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		if(!checkGroundContact)
 		{
 			const float distGoal = 0; // compute the reward from distance to the goal
-
 			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
-
 			
 			if( episodeFrames > 1 )
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
-
 				// compute the smoothed moving average of the delta of the distance to the goal
 				avgGoalDelta  = 0.0;
 				rewardHistory = None;
 				newReward     = None;	
 			}
-
 			lastGoalDistance = distGoal;
 		} */
 	}
@@ -660,4 +650,3 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 }
 
 }
-
