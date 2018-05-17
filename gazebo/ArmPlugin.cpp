@@ -10,6 +10,8 @@
 #include "cudaMappedMemory.h"
 #include "cudaPlanar.h"
 
+#include <cmath>
+
 #define PI 3.141592653589793238462643383279502884197169f
 
 #define JOINT_MIN	-0.75f
@@ -38,10 +40,10 @@
 #define INPUT_WIDTH   512
 #define INPUT_HEIGHT  512
 #define OPTIMIZER "Adam"
-#define LEARNING_RATE 0.0001f
+#define LEARNING_RATE 0.001f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 8
-#define USE_LSTM false
+#define USE_LSTM true
 #define LSTM_SIZE 32
 
 /*
@@ -49,8 +51,8 @@
 /
 */
 
-#define REWARD_WIN  1.0f
-#define REWARD_LOSS -1000.0f
+#define REWARD_WIN   100.0f
+#define REWARD_LOSS -100.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -257,7 +259,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
 			continue;
 
-		if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
+		if(true){std::cout << "Collision between[" << contacts->contact(i).collision1()
 			     << "] and [" << contacts->contact(i).collision2() << "]\n";}
 
 	
@@ -266,17 +268,12 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		/*
-		
-		if (collisionCheck)
-		{
-			rewardHistory = None;
-			newReward  = None;
-			endEpisode = None;
+		if (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0) {
+			rewardHistory = REWARD_WIN;
+			newReward  = true;
+			endEpisode = true;
 			return;
-		}
-		*/
-		
+        }
 	}
 }
 
@@ -584,7 +581,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
-        bool checkGroundContact = gripBBox.min.z <= groundContact;
+        bool checkGroundContact = gripBBox.min.z < groundContact;
 		if(checkGroundContact)
 		{
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
@@ -608,8 +605,12 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				const float distDelta  = lastGoalDistance - distGoal;
 				// compute the smoothed moving average of the delta of the distance to the goal
 				avgGoalDelta  = (avgGoalDelta * 0.9) + (distDelta * (1 - 0.9));
-				rewardHistory = 1./avgGoalDelta;
-				newReward     = true;	
+                if ( avgGoalDelta > 0) {
+					rewardHistory = REWARD_WIN * std::exp(-1*distGoal);
+                } else {
+                 	rewardHistory = REWARD_LOSS * (1-std::exp(-1*distGoal));
+                }
+				newReward = true;	
 			}
 			lastGoalDistance = distGoal;
 		}
