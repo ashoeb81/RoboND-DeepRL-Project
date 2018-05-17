@@ -37,14 +37,14 @@
 /
 */
 
-#define INPUT_WIDTH   512
-#define INPUT_HEIGHT  512
+#define INPUT_WIDTH   128
+#define INPUT_HEIGHT  128
 #define OPTIMIZER "Adam"
-#define LEARNING_RATE 0.001f
+#define LEARNING_RATE 0.0001f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 8
 #define USE_LSTM true
-#define LSTM_SIZE 32
+#define LSTM_SIZE 128
 
 /*
 / TODO - Define Reward Parameters
@@ -52,7 +52,7 @@
 */
 
 #define REWARD_WIN   100.0f
-#define REWARD_LOSS -100.0f
+#define REWARD_LOSS -1000.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -68,7 +68,7 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG true
+#define DEBUG false
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -358,8 +358,13 @@ bool ArmPlugin::updateAgent()
 	/ TODO - Increase or decrease the joint position based on whether the action is even or odd
 	/
 	*/
-	float joint = 0.0; // TODO - Set joint position based on whether action is even or odd.
-
+	float joint = ref[action/2]; // TODO - Set joint position based on whether action is even or odd.
+    
+    if (action % 2 ==0) {
+      joint += actionJointDelta;
+    } else {
+      joint -= actionJointDelta; 
+    }
 	// limit the joint to the specified range
 	if( joint < JOINT_MIN )
 		joint = JOINT_MIN;
@@ -605,10 +610,10 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				const float distDelta  = lastGoalDistance - distGoal;
 				// compute the smoothed moving average of the delta of the distance to the goal
 				avgGoalDelta  = (avgGoalDelta * 0.9) + (distDelta * (1 - 0.9));
-                if ( avgGoalDelta > 0) {
-					rewardHistory = REWARD_WIN * std::exp(-1*distGoal);
+                if ( avgGoalDelta >= 0) {
+					rewardHistory = 1.0 * std::exp(-1*distGoal);
                 } else {
-                 	rewardHistory = REWARD_LOSS * (1-std::exp(-1*distGoal));
+                 	rewardHistory = -1.0 * (1-std::exp(-1*distGoal));
                 }
 				newReward = true;	
 			}
