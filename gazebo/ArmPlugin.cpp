@@ -18,7 +18,7 @@
 #define JOINT_MAX	 2.0f
 
 // Turn on velocity based control
-#define VELOCITY_CONTROL true
+#define VELOCITY_CONTROL false
 #define VELOCITY_MIN -0.2f
 #define VELOCITY_MAX  0.2f
 
@@ -37,22 +37,22 @@
 /
 */
 
-#define INPUT_WIDTH   128
-#define INPUT_HEIGHT  128
+#define INPUT_WIDTH   64
+#define INPUT_HEIGHT  64
 #define OPTIMIZER "Adam"
-#define LEARNING_RATE 0.0001f
-#define REPLAY_MEMORY 10000
-#define BATCH_SIZE 8
-#define USE_LSTM true
-#define LSTM_SIZE 128
+#define LEARNING_RATE 0.1f
+#define REPLAY_MEMORY 20000
+#define BATCH_SIZE 16
+#define USE_LSTM false
+#define LSTM_SIZE 32
 
 /*
 / TODO - Define Reward Parameters
 /
 */
 
-#define REWARD_WIN   100.0f
-#define REWARD_LOSS -1000.0f
+#define REWARD_WIN   1.0f
+#define REWARD_LOSS -1.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -267,9 +267,15 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/ TODO - Check if there is collision between the arm and object, then issue learning reward
 		/
 		*/
-		
-		if (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0) {
-			rewardHistory = REWARD_WIN;
+		bool is_gripper = strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0;
+        bool is_tube =  strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0;
+		if (is_gripper && is_tube) {
+			rewardHistory = 100*REWARD_WIN;
+			newReward  = true;
+			endEpisode = true;
+			return;
+        } else {
+          	rewardHistory = -100*REWARD_LOSS;
 			newReward  = true;
 			endEpisode = true;
 			return;
@@ -590,7 +596,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		if(checkGroundContact)
 		{
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
-			rewardHistory = REWARD_LOSS;
+			rewardHistory = 100*REWARD_LOSS;
 			newReward     = true;
 			endEpisode    = true;
 		}
@@ -609,11 +615,11 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
 				// compute the smoothed moving average of the delta of the distance to the goal
-				avgGoalDelta  = (avgGoalDelta * 0.9) + (distDelta * (1 - 0.9));
-                if ( avgGoalDelta >= 0) {
-					rewardHistory = 1.0 * std::exp(-1*distGoal);
+				avgGoalDelta  = (avgGoalDelta * 0.05) + (distDelta * (1 - 0.05));
+                if ( avgGoalDelta > 0.001f) {
+					rewardHistory = REWARD_WIN * std::exp(-1*distGoal);
                 } else {
-                 	rewardHistory = -1.0 * (1-std::exp(-1*distGoal));
+                 	rewardHistory = REWARD_LOSS * (1-std::exp(-1*distGoal));
                 }
 				newReward = true;	
 			}
