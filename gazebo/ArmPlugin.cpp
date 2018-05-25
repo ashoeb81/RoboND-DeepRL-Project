@@ -24,6 +24,7 @@
 
 // Define DQN API Settings
 
+#define TASK 2
 #define INPUT_CHANNELS 3
 #define ALLOW_RANDOM true
 #define DEBUG_DQN false
@@ -269,7 +270,13 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		*/
 		bool is_gripper = strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0;
         bool is_tube =  strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0;
-		if (is_gripper && is_tube) {
+        bool task_condition;
+        if (TASK == 1) {
+          task_condition = is_tube;
+        } else {
+          task_condition = is_gripper && is_tube;
+        }
+		if (task_condition) {
 			rewardHistory = 100*REWARD_WIN;
 			newReward  = true;
 			endEpisode = true;
